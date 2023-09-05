@@ -6,7 +6,7 @@
 - [Event Bridge](#event-bridge)
 
 # Introduction
-This project helps to remediate newly created ec2 security groups created with 0.0.0.0/0 with approved subnet defined in lambda variable. Also validates if the creation of the group is from group defined in exclude group (example Operations group who can only create groups with 0.0.0.0/0).
+This project helps to remediate newly created ec2 security groups created with 0.0.0.0/0, replaces with approved subnet defined in lambda variable (example vpc subnet 10.0.0.0/16). Also validates if the creation of the SG is from IAM group defined in exclude group (example Operations group who can only create groups with 0.0.0.0/0).
 We will be using below events from event bridge rules to capure changes to security groups and call lambda fuction which can remediate the security groups.
 
 AuthorizeSecurityGroupIngress
