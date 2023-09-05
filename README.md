@@ -1,4 +1,3 @@
-# eventbridge-ec2-security-groups-change
 
 **Table of Contents**
 
