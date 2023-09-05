@@ -1,5 +1,4 @@
-
-**Table of Contents**
+# Table of Contents
 
 - [Introduction](#introduction)
 - [IAM Permission](#iam-permissions)
