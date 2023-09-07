@@ -15,8 +15,6 @@ ModifySecurityGroupRules
 
 
 # IAM Permissions
-Please create IAM role with below permissions to use for lambda function.
-
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -55,7 +53,7 @@ Please create IAM role with below permissions to use for lambda function.
 # Lambda
 Create lambda function (example: ec2-security-group-remediation), use IAM policy above. During testing python 3.10 was selected as runtime. For the function to work, please add below 2 variable once created.
 
-EXCLUDE_GROUP = "Add the group name who's allowed to create 0.0.0.0/0 CIDR, if matching fuction will skip running the checks"
+EXCLUDE_GROUP = "Add the group name who's allowed to create 0.0.0.0/0 CIDR, if matching the lambda function will skip running the checks"
 PREDEFINED_CIDR = <Input CIDR that you want to replace 0.0.0.0/0 with"
 
 Lambda timeout was increased to 30 seconds for APIs to work, tune as required.
