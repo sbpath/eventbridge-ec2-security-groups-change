@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  EXCLUDEGROUP:
+    Type: "String"
+    Default: ""
+    Description: The name of the group who is allowed to create 0.0.0.0/0 CIDR
+  PREDEFINEDCIDR:
+    Type: "String"
+    Default: ""
+    Description: Input CIDR that you want to replace 0.0.0.0/0 with
+
+
+
+Resources:
+
+  EC2SGStateChangeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ec2-sg-state-change/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Timeout: 30
+      Environment:
+        Variables:
+          EXCLUDE_GROUP: !Ref EXCLUDEGROUP
+          PREDEFINED_CIDR: !Ref PREDEFINEDCIDR
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:RevokeSecurityGroupIngress
+                - ec2:AuthorizeSecurityGroupEgress
+                - ec2:AuthorizeSecurityGroupIngress
+                - ec2:RevokeSecurityGroupEgress
+                - ec2:ModifySecurityGroupRules
+                - iam:GetGroup
+              Resource: "*"
+      Events:
+        CloudWatchEvent:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source: 
+                - "aws.ec2"
+              detail-type: 
+                - "AWS API Call via CloudTrail"
+              detail: 
+                eventSource: 
+                  - "ec2.amazonaws.com"
+                eventName:
+                  - "AuthorizeSecurityGroupIngress" 
+                  - "AuthorizeSecurityGroupEgress"
+                  - "ModifySecurityGroupRules"
+            State: "ENABLED"
