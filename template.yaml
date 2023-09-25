@@ -20,7 +20,7 @@ Resources:
     Properties:
       CodeUri: ec2-sg-state-change/
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.7
       Timeout: 30
       Environment:
         Variables:
