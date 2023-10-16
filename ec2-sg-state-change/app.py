@@ -7,7 +7,7 @@ GROUP_NAME_TO_CHECK = os.environ["EXCLUDE_GROUP"]
 PREDEFINED_CIDR = os.environ["PREDEFINED_CIDR"]
 
 # Function to parse username and check group membership
-def get_username_and_check_group(event):
+def get_username(event):
     # Try to get username from userIdentity
     if 'userIdentity' in event['detail'] and 'userName' in event['detail']['userIdentity']:
         username = event['detail']['userIdentity']['userName']
@@ -18,17 +18,15 @@ def get_username_and_check_group(event):
     else:
         username = None
 
-    # Check if username is in the specified group
-    iam_client = boto3.client('iam')
-    response = iam_client.get_group(GroupName=GROUP_NAME_TO_CHECK)
-    if 'Users' in response and any(user['UserName'] == username for user in response['Users']):
-        print(f"User '{username}' is part of '{GROUP_NAME_TO_CHECK}' group. Skipping logic.")
-        return {
-            'statusCode': 200,
-            'body': json.dumps(f"User is part of {GROUP_NAME_TO_CHECK} group. Skipping logic.")
-        }
-
     return username
+    
+# Check if username is in the specified group
+def is_user_in_group(username, group_name):
+    iam_client = boto3.client('iam')
+    response = iam_client.get_group(GroupName=group_name)
+    if 'Users' in response and any(user['UserName'] == username for user in response['Users']):
+        return True
+    return False
 
 # Main function
 def lambda_handler(event, context):
@@ -36,7 +34,15 @@ def lambda_handler(event, context):
     #print("Received event:", json.dumps(event, indent=2))
     
     # Retrieve environment variables
-    username = get_username_and_check_group(event)
+    username = get_username(event)
+    
+    # Check if username is in the specified group
+    if is_user_in_group(username, GROUP_NAME_TO_CHECK):
+        print(f"User '{username}' is part of '{GROUP_NAME_TO_CHECK}' group. No auto remediation required.")
+        return {
+            'statusCode': 200,
+            'body': json.dumps('User is part of Exclude group. No auto remediation required.')
+        }
     
     # If not in specified group, continue with processing
     # Check if the event contains relevant details
@@ -77,13 +83,14 @@ def lambda_handler(event, context):
                 security_group_id = event['detail']['requestParameters']['groupId']
                 # Extract all CIDR IP addresses, security group IDs, and rule IDs
                 ip_permissions = event['detail']['requestParameters']['ipPermissions']['items']
+                #print(ip_permissions)
                 rule_details = []
                 for ip_permission in ip_permissions:
                     # Check for IPv4 rules
                     if 'ipRanges' in ip_permission and 'items' in ip_permission['ipRanges']:
                         for item in ip_permission['ipRanges']['items']:
                            cidr_ip = item['cidrIp']
-                           #rule_id = f"{ip_permission['ipProtocol']}_{ip_permission['fromPort']}_{ip_permission['toPort']}_{cidr_ip}"
+                           rule_id = f"{ip_permission['ipProtocol']}_{ip_permission['fromPort']}_{ip_permission['toPort']}_{cidr_ip}"
                            rule_details.append({
                             'CIDR IP': cidr_ip,
                             'Security Group ID': security_group_id,
