@@ -74,8 +74,18 @@ Create Event Bridge Rule with below event pattern, select target as lambda funct
 }
 
 
+# Instructions to deploy using samcli
 
+> Open CloudShell service from AWS console
+> Clone the repo and deploy the function using sam cli.
 
+$ git clone https://github.com/sbpath/eventbridge-ec2-security-groups-change.git
+$ sam build
+$ sam deploy -g
+(Here you need to pass in Groupname to exclude and subnet to replace with)
 
+> Update runtime to python 3.10 from lambda console.
 
-
+> To delete the cloudformation stack:
+$ sam delete
+ 
