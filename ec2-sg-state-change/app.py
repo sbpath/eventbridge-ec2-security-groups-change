@@ -19,7 +19,7 @@ def get_username(event):
         username = None
 
     return username
-    
+
 # Check if username is in the specified group
 def is_user_in_group(username, group_name):
     iam_client = boto3.client('iam')
@@ -28,14 +28,32 @@ def is_user_in_group(username, group_name):
         return True
     return False
 
+# Function to get VPC CIDR
+def get_vpc_cidr(security_group_id):
+    ec2_client = boto3.client('ec2')
+    response = ec2_client.describe_security_groups(GroupIds=[security_group_id])
+
+    if 'SecurityGroups' in response and response['SecurityGroups']:
+        vpc_id = response['SecurityGroups'][0]['VpcId']
+
+        # Describe VPC to get CIDR block
+        vpc_response = ec2_client.describe_vpcs(VpcIds=[vpc_id])
+
+        if 'Vpcs' in vpc_response and vpc_response['Vpcs']:
+            return vpc_response['Vpcs'][0]['CidrBlock']
+        else:
+            print(f"Unable to retrieve CIDR for VPC {vpc_id}")
+
+    return None
+
 # Main function
 def lambda_handler(event, context):
     # Print the incoming event for debugging purposes
-    #print("Received event:", json.dumps(event, indent=2))
-    
+    # print("Received event:", json.dumps(event, indent=2))
+
     # Retrieve environment variables
     username = get_username(event)
-    
+
     # Check if username is in the specified group
     if is_user_in_group(username, GROUP_NAME_TO_CHECK):
         print(f"User '{username}' is part of '{GROUP_NAME_TO_CHECK}' group. No auto remediation required.")
@@ -43,12 +61,12 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': json.dumps('User is part of Exclude group. No auto remediation required.')
         }
-    
-    # If not in specified group, continue with processing
+
+    # If not in the specified group, continue with processing
     # Check if the event contains relevant details
     if 'detail' in event and 'eventName' in event['detail']:
         event_name = event['detail']['eventName']
-        
+
         # Check if the event is related to security group changes
         if event_name in [
             'AuthorizeSecurityGroupIngress',
@@ -115,6 +133,23 @@ def lambda_handler(event, context):
             for rule in rule_details:
                 print(rule)
                 if rule['CIDR IP'] in ['0.0.0.0/0', '::/0']:  # Check for both IPv4 and IPv6 '0.0.0.0/0' or '::/0'
+                    # Check if PREDEFINED_CIDR is empty or not
+                    if not PREDEFINED_CIDR:
+                        # Get VPC CIDR dynamically
+                        vpc_cidr = get_vpc_cidr(security_group_id)
+
+                        if vpc_cidr:
+                            # Use vpc_cidr as the CIDR value for further processing
+                            print(f"CIDR for VPC {security_group_id}: {vpc_cidr}")
+                            # Update PREDEFINED_CIDR for subsequent usage
+                            global PREDEFINED_CIDR
+                            PREDEFINED_CIDR = vpc_cidr
+                        else:
+                            print(f"Unable to retrieve VPC information for security group {security_group_id}")
+                    else:
+                        # Use PREDEFINED_CIDR as the CIDR value
+                        print(f"Using PREDEFINED_CIDR: {PREDEFINED_CIDR}")
+
                     # Create a new rule with the predefined CIDR value for IPv4
                     if event_name == 'ModifySecurityGroupRules':
                     	new_rule_ipv4 = {
