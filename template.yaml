@@ -36,6 +36,8 @@ Resources:
                 - ec2:AuthorizeSecurityGroupIngress
                 - ec2:RevokeSecurityGroupEgress
                 - ec2:ModifySecurityGroupRules
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeVpcs
                 - iam:GetGroup
               Resource: "*"
       Events:
