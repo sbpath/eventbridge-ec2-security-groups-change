@@ -134,6 +134,7 @@ def lambda_handler(event, context):
                 print(rule)
                 if rule['CIDR IP'] in ['0.0.0.0/0', '::/0']:  # Check for both IPv4 and IPv6 '0.0.0.0/0' or '::/0'
                     # Check if PREDEFINED_CIDR is empty or not
+                    global PREDEFINED_CIDR
                     if not PREDEFINED_CIDR:
                         # Get VPC CIDR dynamically
                         vpc_cidr = get_vpc_cidr(security_group_id)
@@ -142,7 +143,6 @@ def lambda_handler(event, context):
                             # Use vpc_cidr as the CIDR value for further processing
                             print(f"CIDR for VPC {security_group_id}: {vpc_cidr}")
                             # Update PREDEFINED_CIDR for subsequent usage
-                            global PREDEFINED_CIDR
                             PREDEFINED_CIDR = vpc_cidr
                         else:
                             print(f"Unable to retrieve VPC information for security group {security_group_id}")
