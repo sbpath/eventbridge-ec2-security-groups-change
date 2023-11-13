@@ -6,15 +6,15 @@
 - [Event Bridge](#event-bridge)
 
 # Introduction
-This project helps to remediate newly created ec2 security groups created with 0.0.0.0/0, replaces with approved subnet defined in lambda variable (example vpc subnet 10.0.0.0/16). Also validates if the creation of the SG is from IAM group defined in exclude group (example Operations group who can only create groups with 0.0.0.0/0).
+This project helps to remediate newly created ec2 security groups created with 0.0.0.0/0, replaces with approved subnet defined in lambda variable or use VPC CIDR. Also validates if the creation of the SG is from IAM group defined in exclude group (example Operations group who can only create groups with 0.0.0.0/0).
 We will be using below events from event bridge rules to capure changes to security groups and call lambda fuction which can remediate the security groups.
-
+```
 AuthorizeSecurityGroupIngress
 AuthorizeSecurityGroupEgress
 ModifySecurityGroupRules
-
-
+```
 # IAM Permissions
+```
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -27,7 +27,9 @@ ModifySecurityGroupRules
                 "ec2:AuthorizeSecurityGroupIngress",
                 "ec2:RevokeSecurityGroupEgress",
                 "ec2:ModifySecurityGroupRules”,
-		 "iam:GetGroup"
+                "ec2:DescribeSecurityGroups”,
+                "ec2:DescribeVpcs”,
+		"iam:GetGroup"
             ],
             "Resource": "*"
         },
@@ -48,13 +50,14 @@ ModifySecurityGroupRules
         }
     ]
 }
-
+```
 
 # Lambda
 Create lambda function (example: ec2-security-group-remediation), use IAM policy above. During testing python 3.10 was selected as runtime. For the function to work, please add below 2 variable once created.
 
 EXCLUDE_GROUP = "Add the group name who's allowed to create 0.0.0.0/0 CIDR, if matching the lambda function will skip running the checks"
-PREDEFINED_CIDR = <Input CIDR that you want to replace 0.0.0.0/0 with"
+
+PREDEFINED_CIDR = <Input CIDR that you want to replace 0.0.0.0/0 with>, leave it empty to get CIDR from VPC.
 
 Lambda timeout was increased to 30 seconds for APIs to work, tune as required.
 
@@ -63,7 +66,7 @@ Deploy lambda from function attached "ec2-sg-state-change.py"
 # Event Bridge
 
 Create Event Bridge Rule with below event pattern, select target as lambda function created above.
-
+```
 {
   "source": ["aws.ec2"],
   "detail-type": ["AWS API Call via CloudTrail"],
@@ -72,7 +75,7 @@ Create Event Bridge Rule with below event pattern, select target as lambda funct
     "eventName": ["AuthorizeSecurityGroupIngress", "AuthorizeSecurityGroupEgress", "ModifySecurityGroupRules"]
   }
 }
-
+```
 
 # Instructions to deploy using samcli
 
